@@ -1,0 +1,18 @@
+Nabiha Khan
+
+Query to find photoIDs of photos that are visible to the user whose username is
+TestUser as a plain text (.txt or .sql) file
+
+photoID will be visible to TestUser if:
+1. He/She is the owner of the photo
+2. He/She follows another user who has shared a photo with all of their followers (allFollowers = 1)
+3. The photo is in a group where the TestUser is a member
+
+SELECT photoID FROM photo AS p WHERE photoPoster = TestUser WHERE photoPoster = 'TestUser' OR 
+	photoID IN (SELECT photoID FROM photo WHERE photoPoster != 'TestUser' AND allFollowers = 1\
+		    AND photoPoster IN (SELECT username_followed FROM follow WHERE username_follower = 'TestUser'\
+		    AND username_followed = photoPoster AND followstatus = 1)) OR 
+	photoID IN (SELECT photoID FROM share NATURAL JOIN belongto NATURAL JOIN photo WHERE username = 'TestUser' AND photoPoster != 'TestUser')
+ORDER BY postingdate DESC
+
+

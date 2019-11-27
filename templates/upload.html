@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Upload Image</title>
+</head>
+<body>
+	<h1>Upload an Image</h1>
+	<div>
+		<form action="/uploadImage" method="post" enctype="multipart/form-data">
+			<input type="file" name="imageFile" accept="image/*">
+			<br>
+			<input type="text" name="caption" placeholder="Caption your photo:">
+			<br>
+			<input type="checkbox" name="allFollowers" value="allFollowers"><label for="allFollowers">Share with all Followers</label>
+			<br>
+			<select name="groups" multiple>
+				{% for group in groups %}
+				<option value="{{group}}">{{group}}</option>
+				{% endfor %}
+			</select>
+			<br>
+			<input type="submit" value="Upload">
+		</form>
+	</div>
+	{% if message %}
+		<p style="color: {{color}}"> {{message}}</p>
+	{% endif %}
+	<br>
+	<a href="/">Return</a>
+</body>
+</html>
