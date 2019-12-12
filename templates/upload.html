@@ -13,12 +13,17 @@
 			<br>
 			<input type="checkbox" name="allFollowers" value="allFollowers"><label for="allFollowers">Share with all Followers</label>
 			<br>
+			<p>Or select from one of your groups:</p>
+			{% if groups %}
 			<select name="groups" multiple>
 				{% for group in groups %}
 				<option value="{{group}}">{{group}}</option>
 				{% endfor %}
 			</select>
 			<br>
+			{% else %}
+			<p>You don't own any groups yet</p>
+			{% endif %}
 			<input type="submit" value="Upload">
 		</form>
 	</div>

@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>Login</title>
+        <title>Create Friend Group</title>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
       <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
@@ -15,19 +15,19 @@
           {% endif %}
         {% endwith %}
     <body>
-        <h1>Login</h1>
-
+        <h1>Create Group</h1>
         <div>
-            <form action="/loginAuth" method="post">
-                <input type="text" name="username" placeholder="Username" required/>
+            <form action="/createFriendGroup" method="post">
+                <input type="text" name="groupName" placeholder="Group Name" required/>
                 <br/>
-                <input type="password" name="password" placeholder="Password" required/>
+                <input type="text" name="description" placeholder="Description" />
                 <br/>
-                <input type="submit" value="Login">
+                <input type="submit" value="Create a Group">
             </form>
         </div>
         {% if error %}
             {{ error }}
         {% endif %}
+    <a href="/">Go back</a>
     </body>
 </html>

@@ -1,0 +1,25 @@
+Summary of Part 4 
+Nabiha Khan 
+
+For part 4, I implemented the following features:
+Mandatory features
+1. View Visible Photos. This is done in the 'images' directory from the home
+page after the user logs in. All the photos are in divs containing the information
+of the photo including the poster, timestamp, the image itself, caption, a botton to 
+tag users (not implemented), and a list of users tagged. 
+
+2. View further photo info (done with previous feauture)
+
+3. Post a photo. This is done in the upload page. The user has the option to select all followers
+or whatever groups the user owns. 
+
+Optional Features 
+1. Manage Follows. This is done in the follow page and manage friend requests page. 
+In the follow page, the user enters the username of a user they desire to follow. 
+In the manageFriendRequests page, the user chooses from the list of users and either accepts
+or declines the requests. 
+
+2. Add friend group. This is done in the create friend group page. The user enters a 
+name for a friend group, and if that name is not already used by the user, then it gets 
+created.
+

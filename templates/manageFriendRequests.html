@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Manage Friend Requests</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+{% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{category}}" id="message">
+                    {{message}}
+                </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+	{% if followers %}
+<body>
+	<h1>Mange Your Friend Requests</h1>
+	<form action="/manageFriendRequests" method="post" enctype="multipart/form-data">
+		<select name="chooseUsers" multiple>
+            {% for request in followers %}
+            <option value="{{request.username_follower}}">{{request.username_follower}}</option>
+            {% endfor %}
+	        </select>
+	        <br>
+	        <input type="submit" name="action" value="Accept">
+	        <input type="submit" name="action" value="Decline">
+	</form>
+	{% else %}
+	<p>You have no new follow requests</p>
+	{% endif %}
+	<a href="/">Go back</a>
+</body>
+</html>

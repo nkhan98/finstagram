@@ -1,10 +1,25 @@
-from flask import Flask, render_template, request, session, redirect, url_for, send_file
+'''
+Nabiha Khan 
+Databases Project - Finstagram 
+CS 3083, Professor Frankl
+Last Updated: 12/11/19 
+
+Optional Features:
+Add Friend Group 
+Manage Requests 
+
+'''
+
+
+
+from flask import Flask, render_template, request, session, redirect, url_for, send_file, flash
 import os
 import uuid
 import hashlib
 import pymysql.cursors
 from functools import wraps
 import time
+from PIL import Image
 
 SALT = 'cs3083'
 
@@ -51,17 +66,45 @@ def upload():
 @app.route("/images", methods=["GET"])
 @login_required
 def images():
-    query = "SELECT * FROM photo"
-    with connection.cursor() as cursor:
-        cursor.execute(query)
+    username = session["username"]
+    # get the users information
+    cursor = connection.cursor()
+    query = 'SELECT * FROM Person WHERE username = %s'
+    cursor.execute(query, (username))
+    data = cursor.fetchone()
+    firstName = data["firstName"]
+    lastName = data["lastName"]
+    # get the photos visible to the username 
+    query = "SELECT photoID,postingdate,filepath,caption,photoPoster FROM photo WHERE photoPoster = %s OR photoID IN \
+    (SELECT photoID FROM Photo WHERE photoPoster != %s AND allFollowers = 1 AND photoPoster IN \
+    (SELECT username_followed FROM follow WHERE username_follower = %s AND username_followed = photoPoster AND followstatus = 1)) OR photoID IN \
+    (SELECT photoID FROM sharedwith NATURAL JOIN belongto NATURAL JOIN photo WHERE member_username = %s AND photoPoster != %s) ORDER BY postingdate DESC"
+    cursor.execute(query, (username, username, username, username, username))
     data = cursor.fetchall()
-    return render_template("images.html", images=data)
+    for post in data: # post is a dictionary within a list of dictionaries for all the photos
+        # append the users tagged in the photo, if any 
+        query = 'SELECT username, firstName, lastName FROM tagged NATURAL JOIN person WHERE tagstatus = 1 AND photoID = %s'
+        cursor.execute(query, (post['photoID']))
+        result = cursor.fetchall()
+        if (result):
+            post['tagees'] = result
+        # append the owner info 
+        query = 'SELECT firstName, lastName FROM person WHERE username = %s'
+        cursor.execute(query, (post['photoPoster']))
+        ownerInfo = cursor.fetchone()
+        post['firstName'] = ownerInfo['firstName']
+        post['lastName'] = ownerInfo['lastName']
+        # append the users that liked the photo with rating 
+        query = "SELECT username,rating FROM likes WHERE photoID = %s"
+        cursor.execute(query, (post['photoID']))
+        result = cursor.fetchall()
+        if (result):
+            post['likers'] = result 
 
-@app.route("/image/<image_name>", methods=["GET"])
-def image(image_name):
-    image_location = os.path.join(IMAGES_DIR, image_name)
-    if os.path.isfile(image_location):
-        return send_file(image_location, mimetype="image/jpg")
+
+    cursor.close()
+    print(data)
+    return render_template("images.html", images=data)
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -92,6 +135,12 @@ def loginAuth():
     error = "An unknown error has occurred. Please try again."
     return render_template("login.html", error=error)
 
+
+@app.route("/tag", methods=["POST","GET"])
+@login_required
+def tag():
+    return render_template("tag.html")
+
 @app.route("/registerAuth", methods=["POST"])
 def registerAuth():
     if request.form:
@@ -100,15 +149,15 @@ def registerAuth():
         hashedPassword = hashlib.sha256((requestData["password"] + SALT).encode("utf-8")).hexdigest()
         firstName = requestData["fname"]
         lastName = requestData["lname"]
-        
+        bio = requestData["bio"]
         try:
             with connection.cursor() as cursor:
-                query = "INSERT INTO person (username, password, firstName, lastName) VALUES (%s, %s, %s, %s)"
-                cursor.execute(query, (username, hashedPassword, firstName, lastName))
+                query = "INSERT INTO person (username, password, firstName, lastName, bio) VALUES (%s, %s, %s, %s, %s)"
+                cursor.execute(query, (username, hashedPassword, firstName, lastName, bio))
         except pymysql.err.IntegrityError:
             error = "%s is already taken." % (username)
             return render_template('register.html', error=error)    
-
+        flash("Account created successfully! You can now login!", "success")
         return redirect(url_for("login"))
 
     error = "An error has occurred. Please try again."
@@ -118,6 +167,93 @@ def registerAuth():
 def logout():
     session.pop("username")
     return redirect("/")
+
+@app.route("/follow", methods = ["GET", "POST"])
+@login_required
+def follow():
+    if request.form: # submitted
+        username = request.form["username"]
+        # check if the username exists
+        cursor = connection.cursor()
+        query = "SELECT * FROM person WHERE username = %s" #query to check 
+        cursor.execute(query, (username))
+        data = cursor.fetchone() 
+
+        if data: # if there is a username with 'username'
+            # we found the username, send a follow request 
+            query = "SELECT * FROM follow WHERE username_followed = %s \
+            AND username_follower = %s"
+            # check if request has been sent already
+            cursor.execute(query, (username, session['username']))
+            data = cursor.fetchone()
+            if (data): # we already sent the request before
+                # check the followstatus 
+                if (data['followstatus'] == 1):
+                    flash(f"You already follow {username}!", "danger")
+                else:
+                    flash(f"You already sent a request to {username}","danger")
+
+            else:  # good to go 
+                query = "INSERT INTO follow VALUES(%s,%s,0)"
+                connection.commit()
+                cursor.execute(query, (username, session['username']))
+                flash(f"Successfully sent a request to {username}","success")
+
+        else: # the username was not found
+            flash("That username does not exist, try another one", "danger")
+        return redirect(url_for("follow"))
+
+    return render_template("follow.html")
+
+@app.route("/manageFriendRequests", methods=["GET","POST"])
+@login_required
+def manageRequests():
+    # get all the requests that have followstatus = 0 for the current user 
+    cursor = connection.cursor()
+    query = "SELECT username_follower FROM follow WHERE username_followed = %s AND followstatus = 0"
+    cursor.execute(query, (session["username"]))
+    data = cursor.fetchall()
+    if request.form:
+        chosenUsers = request.form.getlist("chooseUsers")
+        for user in chosenUsers:
+            if request.form['action'] ==  "Accept":
+                query = "UPDATE follow SET followstatus = 1 WHERE username_followed=%s\
+                AND username_follower = %s"
+                cursor.execute(query, (session['username'], user))
+                connection.commit()
+                flash("The selected friend requests have been accepted!", "success")
+            elif request.form['action'] == "Decline":
+                query = "DELETE FROM follow WHERE username_followed = %s\
+                AND username_follower = %s"
+                cursor.execute(query, (session['username'], user))
+                connection.commit()
+                flash("The selected friend requests have been deleted", "success")
+        return redirect(url_for("manageRequests"))
+        # handle form goes here 
+    cursor.close()
+    return render_template("manageFriendRequests.html", followers = data)
+
+
+@app.route("/createFriendGroup", methods = ["GET", "POST"])
+@login_required
+def creategroup():
+    if request.form: #perform a check to ensure that the current user doesn't have the specific group
+        groupName = request.form["groupName"]
+        description = request.form["description"]
+        cursor = connection.cursor()
+        query = "SELECT * FROM friendgroup WHERE groupOwner = %s AND groupName = %s"
+        cursor.execute(query, (session["username"], groupName))
+        data = cursor.fetchone()
+        if data: 
+            flash(f"You already own a friend group with the name {groupName}. Please try another.")
+            return redirect(url_for("creategroup"))
+        else:
+            query = "INSERT INTO friendgroup VALUES(%s,%s,%s)"
+            cursor.execute(query, (session['username'], groupName, description))
+            connection.commit()
+            flash(f"Successfully created the {groupName} group", "success")
+            return redirect(url_for("creategroup"))
+    return render_template("createFriendGroup.html")
 
 # part 3 implementation
 
@@ -132,6 +268,14 @@ def groups(username):
         cursor.close()
     return groups
 
+def save_picture(picture):
+    picture_path = os.path.join(app.root_path, 'static/images', picture.filename)
+    output_size = (400, 500)
+    i = Image.open(picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
+    return picture.filename
+
 @app.route("/uploadImage", methods=["POST"])
 @login_required
 def upload_image():
@@ -139,10 +283,8 @@ def upload_image():
     groupsLst = groups(username)
     if request.files:
         image_file = request.files.get("imageFile", "")
-        image_name = image_file.filename
-        filepath = os.path.join(IMAGES_DIR, image_name)
+        filepath = save_picture(image_file)
         caption = request.form["caption"]
-        image_file.save(filepath)
         try:
             if request.form["allFollowers"]:
                 allFollowers = 1

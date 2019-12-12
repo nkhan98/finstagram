@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>Login</title>
+        <title>Send Follow Request</title>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
       <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
@@ -15,19 +15,18 @@
           {% endif %}
         {% endwith %}
     <body>
-        <h1>Login</h1>
-
+        <h1>Send A Follow Request</h1>
         <div>
-            <form action="/loginAuth" method="post">
+            <form action="/follow" method="post">
                 <input type="text" name="username" placeholder="Username" required/>
                 <br/>
-                <input type="password" name="password" placeholder="Password" required/>
-                <br/>
-                <input type="submit" value="Login">
+                <input type="submit" value="Send Request">
             </form>
         </div>
-        {% if error %}
-            {{ error }}
+        {% if message %}
+            {{ message }}
         {% endif %}
+    <a href="/">Go back</a>
     </body>
+
 </html>
